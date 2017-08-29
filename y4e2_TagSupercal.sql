@@ -8,8 +8,8 @@ select unitname, reqnum, attnum
     from pfw_attempt
     where reqnum=2922
     and attnum=1
-    and unitname='20170201t0213'
-    group by unitname,reqnum;
+    and unitname='20170201t0213';
+--    group by unitname,reqnum;
 
 --to delete a table from the DB
 --DROP TABLE <table to be deleted> PURGE
@@ -23,7 +23,7 @@ insert into ops_proctag_def (tag, description)
 --insert the above results in the tag
 insert into proctag (tag, created_date, created_by, pfw_attempt_id) 
     select 'Y4A1_Y4E2_SUPERCAL', SYSDATE, 'fpazch', a.id 
-    from pfw_attempt a, SUPERCAL_Y4E1 x 
+    from pfw_attempt a, SUPERCAL_Y4E2 x 
     where a.reqnum=x.reqnum 
     and a.unitname=x.unitname 
     and a.attnum=x.attnum;
