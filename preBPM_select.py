@@ -44,12 +44,18 @@ class Toolbox():
             cols = [line[0].lower() for line in cursor.description]
             rows = cursor.fetchall()
             outtab = np.rec.array(rows, dtype=zip(cols, outdtype))
+            logging.warning('Avoiding period of time around light bulb, Y5')
+            outtab = outtab[np.where(np.logical_or(outtab['nite'] < 20171109,
+                            outtab['nite'] > 20171125))]
         elif (dbaccess == 'easyaccess'):
             connect = ea.connect(dbsection)
             cursor = connect.cursor()
             outtab = connect.query_to_pandas(toquery)
             # Transform column names to lower case
             outtab.columns = map(str.lower, outtab.columns)
+            logging.warning('Avoiding period of time around light bulb, Y5')
+            outtab = outtab.loc[(outtab['nite'] < 20171109) |
+                                (outtab['nite'] > 20171125)]
             # Remove duplicates
             outtab.drop_duplicates(['expnum'], inplace=True)
             outtab.reset_index(drop=True, inplace=True)
@@ -230,7 +236,7 @@ class Refine():
         return expnum, cumd, neig
 
     @classmethod
-    def some_stat(cls, df, nrange_str, sel_expnum):
+    def some_stat(cls, df, nrange_str, sel_expnum, cumdist, neighbor):
         '''Given a DataFrame containig the information from the DB query,
         construct some informative plots
         '''
@@ -336,7 +342,7 @@ if __name__ == '__main__':
     #label = 'y4e2'
     #niterange = [20170103, 20170218]
     #----------
-    if False:
+    if not False:
         gsel_ini = Toolbox.gband_select(niterange)
         pickle.dump(gsel_ini, open('rm.pickle', 'w+'))
     else:
