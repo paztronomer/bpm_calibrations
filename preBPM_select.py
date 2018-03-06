@@ -131,7 +131,6 @@ class Refine():
             #criteria in DES. All obey the condition
             #
             # Save files in case of crash
-            pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
             pickle.dump(cumd, open('rm_cumd.pickle', 'w+'))
             pickle.dump(neig, open('rm_neig.pickle', 'w+'))
             logging.info('Cutting down to 50 g-band exposures')
@@ -148,6 +147,7 @@ class Refine():
             # As we probably deal with duplicates because did not drop them
             # in the recarray, fill up to 50 elements
             expnum = list(set(expnum))
+            pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
             while (len(expnum) < 50):
                 rdm = np.random.choice(arr['expnum'], size=1)
                 if rdm[0] not in expnum:
@@ -195,7 +195,6 @@ class Refine():
             cumd = np.array(cumd)
             neig = np.array(neig)
             # Save files in case of crash
-            pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
             pickle.dump(cumd, open('rm_cumd.pickle', 'w+'))
             pickle.dump(neig, open('rm_neig.pickle', 'w+'))
             #the above selection don't filter, maybe because of the observig
@@ -214,6 +213,7 @@ class Refine():
                     logging.warning('Possible low number g-band per nite')
             # Double safety
             expnum = list(set(expnum))
+            pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
             if (len(expnum) < 50):
                 logging.warning('Less than 50 selected exposures. Adding more')
             while (len(expnum) < 50):
