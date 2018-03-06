@@ -185,7 +185,7 @@ class Refine():
                     c += 1
                     if (c % 1E5 == 0):
                         logging.info('Calculation {0} of {1}'.format(
-                            c, arr.shape[0]**2)
+                            c, len(df.index)**2)
                             )
                 cumd.append(np.sum(d))
                 # Avoid appending the zero-distance
