@@ -336,7 +336,7 @@ if __name__ == '__main__':
     #label = 'y4e2'
     #niterange = [20170103, 20170218]
     #----------
-    if not False:
+    if False:
         gsel_ini = Toolbox.gband_select(niterange)
         pickle.dump(gsel_ini, open('rm.pickle', 'w+'))
     else:
