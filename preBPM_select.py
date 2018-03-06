@@ -142,7 +142,7 @@ class Refine():
             logging.info('Cutting down to 50 g-band exposures')
             #third selection: select 50 entries from a random sample, flat prob.
             per_nite = np.ceil(50 / np.unique(arr['nite']).shape[0]).astype(int)
-            np.random.seed(seed=19860312)
+            np.random.seed(seed=0)
             expnum = []
             for n in np.unique(arr['nite'][:]):
                 arr_aux = arr[arr['nite'] == n]['expnum']
@@ -209,7 +209,7 @@ class Refine():
             logging.info('Cutting down to 50 g-band exposures')
             #third selection: select 50 entries from a random sample, flat prob.
             per_nite = np.ceil(50 / df['nite'].unique().size).astype(int)
-            np.random.seed(seed=19860312)
+            np.random.seed(seed=0)
             expnum = []
             for n in df['nite'].unique():
                 df_aux = df.loc[df['nite'] == n, 'expnum']
