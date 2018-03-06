@@ -106,16 +106,20 @@ class Refine():
             idx = []
             # NxN loop
             logging.info('NxN distances {0}'.format(arr.shape[0]**2))
+            c = 0L
             for i in range(arr.shape[0]):
                 d = []
                 for m in range(arr.shape[0]):
-                    print(np.array((arr['radeg'][i], arr['decdeg'][i])))
-                    exit()
                     dist = np.linalg.norm(
                         np.array((arr['radeg'][i], arr['decdeg'][i])) -
                         np.array((arr['radeg'][m], arr['decdeg'][m]))
                         )
                     d.append(dist)
+                    c += 1
+                    if (c % 1E5 == 0):
+                        logging.info('Calculation {0} of {1}'.format(
+                            c, arr.shape[0]**2)
+                            )
                 cumd.append(np.sum(d))
                 # Avoid appending the zero-distance
                 neig.append(sorted(d)[1])
@@ -126,6 +130,10 @@ class Refine():
             #the above selection don't filter, maybe because of the observig
             #criteria in DES. All obey the condition
             #
+            # Save files in case of crash
+            pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
+            pickle.dump(cumd, open('rm_cumd.pickle', 'w+'))
+            pickle.dump(neig, open('rm_neig.pickle', 'w+'))
             logging.info('Cutting down to 50 g-band exposures')
             #third selection: select 50 entries from a random sample, flat prob.
             per_nite = np.ceil(50 / np.unique(arr['nite']).shape[0]).astype(int)
@@ -160,6 +168,7 @@ class Refine():
             neig = []
             idx = []
             # NxN loop
+            c = 0L
             logging.info('NxN distances {0}'.format(len(df.index)**2))
             for i in range(len(df.index)):
                 d = []
@@ -173,6 +182,11 @@ class Refine():
                         df.iloc[m][['radeg', 'decdeg']].values
                         )
                     d.append(dist)
+                    c += 1
+                    if (c % 1E5 == 0):
+                        logging.info('Calculation {0} of {1}'.format(
+                            c, arr.shape[0]**2)
+                            )
                 cumd.append(np.sum(d))
                 # Avoid appending the zero-distance
                 neig.append(sorted(d)[1])
@@ -183,7 +197,7 @@ class Refine():
             # Save files in case of crash
             pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
             pickle.dump(cumd, open('rm_cumd.pickle', 'w+'))
-            pickle.dump(neig, open('rm_neig.pickle', 'w+'))            
+            pickle.dump(neig, open('rm_neig.pickle', 'w+'))
             #the above selection don't filter, maybe because of the observig
             #criteria in DES. All obey the condition
             #
