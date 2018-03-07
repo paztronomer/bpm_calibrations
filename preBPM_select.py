@@ -351,4 +351,6 @@ if __name__ == '__main__':
         gsel_ini = pickle.load(open(pname, 'r+'))
     #
     expnum, cumdist, neig = Refine.reduce_sample(gsel_ini, label)
+    #
+    logging.warning('Plottong methods NEED to be fixed')
     Refine.some_stat(gsel_ini, '20170815t0222', expnum, cumdist, neig)
