@@ -335,7 +335,7 @@ class Refine():
 
 
 if __name__ == '__main__':
-    print '...starting selection'
+    logging.warning('Avoid running in local laptop if not parallel. Use descmp4 or similar')
     #----------
     label = 'y5'
     niterange = [20170815, 20180222]
