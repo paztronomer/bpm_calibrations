@@ -9,6 +9,7 @@ import uuid
 import subprocess
 import time
 import logging
+import argparse
 import numpy as np
 import shlex
 # setup logging
@@ -25,6 +26,8 @@ class Listed():
                  badpix=None,
                  bindir=None,
                  band=None,
+                 def_badpix = 'bad_pixel_20160506.lst',
+                 def_funky = 'funky_column.lst',    
                  root_dir='/archive_data/desarchive/'):
         '''
         Load the two inputs tables, assuming no compression in the 
@@ -66,8 +69,15 @@ class Listed():
         self.badpix = badpix
         self.bindir = bindir
         self.band = band
+        # Not included in argparse
         self.root_dir = root_dir
-    
+        self.def_badpix = def_badpix
+        self.def_funky = def_funky
+        aux_add = 'Args not included in argparse:'
+        aux_add += '{0}, {1}, {2}'.format(self.root_dir, self.def_badpix, 
+                                          self.def_funky)
+        logging.info(aux_add)
+
     def progress_bar(self, iterator, Nposit, wait_time=0.25):
         '''
         Function receives the actual iterator and the max number of itemss
@@ -137,56 +147,64 @@ class Listed():
         auxiliary for filename/path creation
         '''
         PID = os.getpid()
+        uID = str(uuid.uuid4())
         bias_aux, flat_aux, obj_aux = self.feed_list()
         # Create output folders
         dir_out = 'out_{0}_pid{1}'.format(label, PID)
         dir_log = 'log_{0}_pid{1}'.format(label, PID)
         #
-        if os.path.exists(os.path.dirname(dir_out)):
+        if os.path.exists(dir_out):
             aux_m1 = 'Directory {0} exists. Creating new name'.format(dir_out)
             logging.warning(aux_m1)
             dir_out = 'out_{0}_{1}'.format(label, str(uuid.uuid4())) 
             aux_m2 = 'Created: {0}'.format(dir_out)
         else:
             try:
-                os.makedirs(os.path.dirname(dir_out))
+                os.makedirs(dir_out)
             except:
                 e = sys.exc_info()[0]
                 logging.error(e)
+                logging.error('Issue creating {0}'.format(dir_out))
                 exit(1)
         #
-        if os.path.exists(os.path.dirname(dir_log)):
+        if os.path.exists(dir_log):
             aux_m1 = 'Directory {0} exists. Creating new name'.format(dir_log)
             logging.warning(aux_m1)
             dir_log = 'out_{0}_{1}'.format(label, str(uuid.uuid4())) 
             aux_m2 = 'Created: {0}'.format(dir_log)
         else:
             try:
-                os.makedirs(os.path.dirname(dir_log))
+                os.makedirs(dir_log)
             except:
                 e = sys.exc_info()[0]
                 logging.error(e)
+                logging.error('Issue creating {0}'.format(dir_log))
                 exit(1)
+        # Auxiliary lists for badpix definitions
+        badpix = os.path.join(self.badpix, self.def_badpix)
+        funky = os.path.join(self.badpix, self.def_funky)    
         # BPM call, per CCD
         logging.info('Call of BPM creation')
         for m in self.ccd:
+            # Set progress bar
             self.progress_bar(m, len(self.ccd), wait_time=0.5)
             # Write out tmp files, using auxiliary arrays created in 
-            # feed_list() method
-            out_bias = 'pid{0}.biascor.csv'.format(PID)
+            # feed_list() method. This will be erased
+            out_bias = '{0}.biascor.csv'.format(uID)
             np.savetxt(out_bias, 
-                       biascor[biascor['ccdnum'] == m]['path'],
+                       bias_aux[bias_aux['ccdnum'] == m]['path'],
                        fmt='%s')
-            out_flat = 'pid{0}.flatcor.csv'.format(PID)
-            np.savetxt(out_flat,flatcor[flatcor['ccdnum']==m]['path'],fmt='%s')
-            out_obj = 'pid{0}.objects.csv'.format(PID)
-            np.savetxt(out_obj,obj[obj['ccdnum']==m]['path'],fmt='%s')
-
-            badpix = os.path.join(badpix_dir,'bad_pixel_20160506.lst')
-            funky = os.path.join(badpix_dir,'funky_column.lst')
-            
-            cmds = os.path.join(exe_dir,'mkbpm.py')
-            cmds += ' --outfile {0}/bpm_c{1:02}.fits'.format(dir_out,m)
+            out_flat = '{0}.flatcor.csv'.format(uID)
+            np.savetxt(out_flat,
+                       flat_aux[flat_aux['ccdnum'] == m]['path'],
+                       fmt='%s')
+            out_obj = '{0}.object.csv'.format(uID)
+            np.savetxt(out_obj,
+                       obj_aux[obj_aux['ccdnum'] == m]['path'],
+                       fmt='%s')
+            # Set command line
+            cmds = os.path.join(self.bindir, 'mkbpm.py')
+            cmds += ' --outfile {0}/bpm_c{1:02}.fits'.format(dir_out, m)
             cmds += ' --ccdnum {0}'.format(m)
             cmds += ' --biascor {0}'.format(out_bias)
             cmds += ' --flatcor {0}'.format(out_flat)
@@ -194,32 +212,32 @@ class Listed():
             cmds += ' --badpix {0}'.format(badpix)
             cmds += ' --funkycol {0}'.format(funky)
             cmds += ' --verbose 3'
-
-            #shlex to more refinated way to take care of tokenization
+            # shlex to more refinated way to take care of tokenization
             cmds = shlex.split(cmds)
-            #Notes:
-            #i) remember to *maybe* use stdin for communicate different args
-            #to mkbpm
-            logbpm = open('{0}/log.bpm_c{1:02}'.format(dir_log,m),'w+')
-            job = subprocess.Popen(cmds,stdin=None,
-                                stdout=logbpm,
-                                stderr=subprocess.STDOUT,
-                                universal_newlines=True,
-                                shell=False,bufsize=-1)
+            # Notes:
+            # remember to *maybe* use stdin for communicate different args
+            # to mkbpm
+            # Set a logo per CCD. As the folder is already unique, then 
+            # use only the CCDNUM for naming
+            logbpm = open('{0}/log.bpm_c{1:02}'.format(dir_log, m), 'w+')
+            job = subprocess.Popen(cmds,
+                                   stdin=None,
+                                   stdout=logbpm,
+                                   stderr=subprocess.STDOUT,
+                                   universal_newlines=True,
+                                   shell=False,
+                                   bufsize=-1)
             job.wait()
             logbpm.close()
-            
-            #erase the tmp files
+            # Do not forget to close the log file
+            # Erase the tmp files
             if clean_tmp:
-                rm_bias = subprocess.check_call(['rm',out_bias]) 
-                rm_flat = subprocess.check_call(['rm',out_flat]) 
-                rm_obj = subprocess.check_call(['rm',out_obj]) 
-        print '\n\tOutput directory: {0}\n\tLOG directory: {1}'.format(dir_out,
-                                                                    dir_log)
-
-    @classmethod
-    def fill_log(cls):
-        pass
+                rm_bias = subprocess.check_call(['rm', out_bias]) 
+                rm_flat = subprocess.check_call(['rm', out_flat]) 
+                rm_obj = subprocess.check_call(['rm', out_obj])
+        logging.info('Output directory: {0}'.format(dir_out))
+        logging.info('Log directory: {0}'.format(dir_log))
+        return True
 
 
 if __name__=='__main__':
@@ -240,7 +258,7 @@ if __name__=='__main__':
     abc = argparse.ArgumentParser(description=desc)
     #
     t0 = 'Object table harboring \'red_pixcor\' information, from PREBPM.'
-    t0 += ' Columns must be (in order): EXPNUM, CCDNUM, BAND, ROOT, PATH'
+    t0 += ' Columns must be (in order): EXPNUM, CCDNUM, BAND, ROOT, PATH,'
     t0 += ' FILENAME, COMPRESSION'
     abc.add_argument('objects', help=t0, type=str)
     t1 = 'Precal table harboring PRECAL products information. Columns must'
@@ -250,9 +268,9 @@ if __name__=='__main__':
     abc.add_argument('--label', help=t2, metavar='')
     t3 = 'Space separated list of CCD numbers to be used. Default:'
     t3 += ' {0}'.format(ccd_list)
-    abc.add_argument('--ccd', help=t3, nargs=+)
+    abc.add_argument('--ccd', help=t3, nargs='+', default=ccd_list)
     t4 = 'Directory for badpixel lists definitions. Default: '
-    t4 += ' {0}'.format(badpix)
+    t4 += ' {0}'.format(badpix_dir)
     abc.add_argument('--badpix', help=t4, metavar='', default=badpix_dir)
     t5 = 'Directory for executables. Default: {0}'.format(exec_dir)
     abc.add_argument('--bindir', help=t5, metavar='', default=exec_dir)
@@ -277,3 +295,4 @@ if __name__=='__main__':
             band=abc.band
         )
     L.make_bpm()
+    logging.info('Successfully ended')
