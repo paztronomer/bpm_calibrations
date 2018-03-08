@@ -42,3 +42,7 @@ or
 ```sql
 select {...}; > y5a1_precal.tab
 ```
+1. To call the creation of BPMs
+```bash
+python createBPM.py y5a1_object.tab y5a1_precal.tab --label Y5A1
+```
