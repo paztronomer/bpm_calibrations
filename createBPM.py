@@ -282,7 +282,7 @@ if __name__=='__main__':
         label = str(uuid.uuid4())
     else:
         label = abc.label
-    if (str.lower(abc.band) != 'b'):
+    if (str.lower(abc.band) != 'g'):
         logging.warning('Band is not g-band')
     #
     L = Listed(
