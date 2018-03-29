@@ -257,11 +257,11 @@ if __name__=='__main__':
     abc = argparse.ArgumentParser(description=desc)
     #
     t0 = 'Object table harboring \'red_pixcor\' information, from PREBPM.'
-    t0 += ' Columns must be (in order): EXPNUM, CCDNUM, BAND, ROOT, PATH,'
-    t0 += ' FILENAME, COMPRESSION'
+    t0 += ' Space-separated columns must be (in order): EXPNUM, CCDNUM, BAND,'
+    t0 += ' ROOT, PATH, FILENAME, COMPRESSION'
     abc.add_argument('objects', help=t0, type=str)
-    t1 = 'Precal table harboring PRECAL products information. Columns must'
-    t1 += ' be (in order): ARCHIVE_PATH, REQNUM, UNITNAME, ATTNUM'
+    t1 = 'Precal table harboring PRECAL products information. Space-separated'
+    t1 += ' columns must be (in order): ARCHIVE_PATH, REQNUM, UNITNAME, ATTNUM'
     abc.add_argument('precal', help=t1, type=str)
     t2 = 'Label to be used for generated BPM'
     abc.add_argument('--label', help=t2, metavar='')
