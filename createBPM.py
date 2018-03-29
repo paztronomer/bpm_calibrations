@@ -1,5 +1,4 @@
-'''Script to create BPM based in preBPM and Precal products, using the 
-BPM code creation wrote by RGruendl
+'''Script to create BPM based in preBPM and Precal products 
 '''
 
 import os
