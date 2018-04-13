@@ -189,14 +189,33 @@ class Listed():
             self.progress_bar(m, len(self.ccd), wait_time=0.5)
             # Write out tmp files, using auxiliary arrays created in 
             # feed_list() method. This will be erased
+            #
+            # =======================================
+            # Y5 specific fixing
+            # For 20170816 use biases from 20170815
+            x_flat = np.copy(flat_aux[flat_aux['ccdnum'] == m]['path'])
+            x_bias = np.copy(bias_aux[bias_aux['ccdnum'] == m]['path'])
+            # Change biases
+            x_bias[1] = x_bias[0]
+            # Discard the forst night, 20170815
+            x_flat = x_flat[1:]
+            x_bias = x_bias[1:]
+            #
+            #
             out_bias = '{0}.biascor.csv'.format(uID)
-            np.savetxt(out_bias, 
-                       bias_aux[bias_aux['ccdnum'] == m]['path'],
-                       fmt='%s')
             out_flat = '{0}.flatcor.csv'.format(uID)
-            np.savetxt(out_flat,
-                       flat_aux[flat_aux['ccdnum'] == m]['path'],
-                       fmt='%s')
+            #
+            # 
+            #
+            # np.savetxt(out_bias, 
+            #            bias_aux[bias_aux['ccdnum'] == m]['path'],
+            #            fmt='%s')
+            # np.savetxt(out_flat,
+            #            flat_aux[flat_aux['ccdnum'] == m]['path'],
+            #            fmt='%s')
+            np.savetxt(out_bias, x_bias, fmt='%s')
+            np.savetxt(out_flat, x_flat, fmt='%s')
+            # =======================================
             out_obj = '{0}.object.csv'.format(uID)
             np.savetxt(out_obj,
                        obj_aux[obj_aux['ccdnum'] == m]['path'],
