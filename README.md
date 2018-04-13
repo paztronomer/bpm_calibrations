@@ -1,5 +1,5 @@
-# calibration
-Auxiliary scripts for DES BPM generation
+#D ES Bad Pixel Masks
+Auxiliary scripts for DES BPM generation, as part of the yearly calibrations
 
 ## Instructions to create BPM
 
