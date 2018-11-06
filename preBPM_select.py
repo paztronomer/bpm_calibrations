@@ -1,3 +1,7 @@
+""" Script to make the selection of 50 g-band exposures for preBPM
+"""
+
+
 import os
 import sys
 import time
@@ -96,7 +100,7 @@ class Toolbox():
 
 class Refine():
     @classmethod
-    def reduce_sample(cls, data, label):
+    def reduce_sample(cls, data, label, exclude=None):
         '''Low skybrightness, separation of at least 30 arcsec (0.0083 deg)
         Inputs:
         - arr: structured array coming from DB query
@@ -105,6 +109,11 @@ class Refine():
         if isinstance(data, np.ndarray):
             logging.info('Reducing sample. Record array')
             arr = np.copy(data)
+            # Remove excluded
+            if (exclude is not None):
+                for x in exclude:
+                    print(x)
+                    arr = arr[np.where(arr['expnum'] != x)]
             # First selection: skybrightness below median of distribution
             arr = arr[arr['skybrightness'] <= np.median(arr['skybrightness'])]
             t_i = 'Selecting sky brightness (focal plane) below median'
@@ -180,6 +189,10 @@ class Refine():
         elif isinstance(data, pd.DataFrame):
             logging.info('Reducing sample. Data Frame')
             df = data.copy(deep=True)
+            # Remove excluded
+            if (exclude is not None):
+                for y in exclude:
+                    df = df.loc[df['expnum'] != y]
             # First selection: skybrightness below median of distribution
             df = df.loc[df['skybrightness'] <= np.median(df['skybrightness'])]
             t_i = 'Selecting sky brightness (focal plane) below median'
@@ -372,6 +385,8 @@ if __name__ == '__main__':
     arg.add_argument('--nites', help=h2, nargs=2, type=int)
     h3 = 'Flag to recalculate the g-band selection. Default is not to do it'
     arg.add_argument('--flag1', help=h3, action='store_true')
+    h4 = 'List of exposures to be excluded from the search'
+    arg.add_argument('--exclude', help=h4)
     #
     arg = arg.parse_args()
     #
@@ -386,8 +401,11 @@ if __name__ == '__main__':
         logging.info('Loading pickled: {0}'.format(pname))
         gsel_ini = pickle.load(open(pname, 'r+'))
     #
+    if (arg.exclude is not None):
+        excl = np.loadtxt(arg.exclude, dtype=int)
     # From the whole sample, get 50 exposures 
-    expnum, cumdist, neig = Refine.reduce_sample(gsel_ini, arg.lab)
+    expnum, cumdist, neig = Refine.reduce_sample(gsel_ini, arg.lab, 
+                                                 exclude=excl,)
     #
     if False:
         Refine.some_stat(gsel_ini, 'bpmSel', expnum, cumdist, neig)
