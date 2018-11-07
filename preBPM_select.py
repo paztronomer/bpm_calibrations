@@ -1,15 +1,20 @@
+""" Script to make the selection of 50 g-band exposures for preBPM
+"""
+
+
 import os
 import sys
 import time
 import logging
 import pickle
 import datetime
+import argparse
 import numpy as np
 import pandas as pd
 import scipy.spatial.distance as distance
-#setup for display visualization
+# setup for display visualization
 import matplotlib
-#matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.dates import MonthLocator, DayLocator, DateFormatter
 #
@@ -95,23 +100,30 @@ class Toolbox():
 
 class Refine():
     @classmethod
-    def reduce_sample(cls, data, label):
+    def reduce_sample(cls, data, label, exclude=None, G=80):
         '''Low skybrightness, separation of at least 30 arcsec (0.0083 deg)
         Inputs:
         - arr: structured array coming from DB query
         '''
+        # For data being ndarray 
         if isinstance(data, np.ndarray):
             logging.info('Reducing sample. Record array')
             arr = np.copy(data)
-            #first selection: skybrightness below median of distribution
+            # Remove excluded
+            if (exclude is not None):
+                for x in exclude:
+                    arr = arr[np.where(arr['expnum'] != x)]
+            # First selection: skybrightness below median of distribution
             arr = arr[arr['skybrightness'] <= np.median(arr['skybrightness'])]
-            #second selection: by its distance
-            #select with distance higher than 30 arcsec
+            t_i = 'Selecting sky brightness (focal plane) below median'
+            logging.info(t_i)
+            # Second selection: by its distance
+            # select with distance higher than 30 arcsec
             cumd = []
             neig = []
             idx = []
             # NxN loop
-            logging.info('NxN distances {0}'.format(arr.shape[0]**2))
+            logging.info('NxN distances={0}'.format(arr.shape[0]**2))
             c = 0L
             for i in range(arr.shape[0]):
                 d = []
@@ -119,32 +131,40 @@ class Refine():
                     dist = np.linalg.norm(
                         np.array((arr['radeg'][i], arr['decdeg'][i])) -
                         np.array((arr['radeg'][m], arr['decdeg'][m]))
-                        )
+                    )
                     d.append(dist)
                     c += 1
                     if (c % 1E5 == 0):
                         logging.info('Calculation {0} of {1}'.format(
                             c, arr.shape[0]**2)
-                            )
+                        )
                 cumd.append(np.sum(d))
                 # Avoid appending the zero-distance
                 neig.append(sorted(d)[1])
+                # Conversion between arcsec and deg for minimal separation
                 if sorted(d)[1] > 0.00833:
                     idx.append(i)
             cumd = np.array(cumd)
             neig = np.array(neig)
-            #the above selection don't filter, maybe because of the observig
-            #criteria in DES. All obey the condition
             #
+            # Using the selected indices, make the sub-selection 
+            if (arr.size == len(idx)):
+                t_w = 'The separation criteria did not drop exposures'
+                logging.warning(t_w)
+            else:
+                arr = arr[idx]
             # Save files in case of crash
             pickle.dump(cumd, open('rm_cumd.pickle', 'w+'))
             pickle.dump(neig, open('rm_neig.pickle', 'w+'))
             logging.info('Cutting down to 50 g-band exposures')
-            #third selection: select 50 entries from a random sample, flat prob.
-            per_nite = np.ceil(50 / np.unique(arr['nite']).shape[0]).astype(int)
+            # Third selection: select 50 entries from a random sample, 
+            # flat probability distribution to select the exposures
+            per_nite = np.ceil(G / np.unique(arr['nite']).shape[0]).astype(int)
             np.random.seed(seed=0)
             expnum = []
-            for n in np.unique(arr['nite'][:]):
+            t_i = 'Number of nights from where to extract data'
+            logging.info(t_i)
+            for n in np.unique(arr['nite']):
                 arr_aux = arr[arr['nite'] == n]['expnum']
                 try:
                     expnum += list(np.random.choice(arr_aux, size=per_nite))
@@ -154,28 +174,35 @@ class Refine():
             # in the recarray, fill up to 50 elements
             expnum = list(set(expnum))
             pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
-            while (len(expnum) < 50):
+            while (len(expnum) < G):
                 rdm = np.random.choice(arr['expnum'], size=1)
-                if rdm[0] not in expnum:
+                if (rdm[0] not in expnum):
                     expnum += list(rdm)
             #
             logging.info('Saving table')
             outnm = '{0}_prebpm_gBAND.csv'.format(label)
             np.savetxt(outnm, np.sort(np.array(expnum)), fmt='%d')
             logging.info('CSV expnums table: {0}'.format(outnm))
+        # for data being dataframe
         elif isinstance(data, pd.DataFrame):
             logging.info('Reducing sample. Data Frame')
             df = data.copy(deep=True)
-            #first selection: skybrightness below median of distribution
+            # Remove excluded
+            if (exclude is not None):
+                for y in exclude:
+                    df = df.loc[df['expnum'] != y]
+            # First selection: skybrightness below median of distribution
             df = df.loc[df['skybrightness'] <= np.median(df['skybrightness'])]
-            #second selection: by its distance
+            t_i = 'Selecting sky brightness (focal plane) below median'
+            logging.info(t_i)
+            # Second selection: by its distance
             #select with distance higher than 30 arcsec
             cumd = []
             neig = []
             idx = []
             # NxN loop
             c = 0L
-            logging.info('NxN distances {0}'.format(len(df.index)**2))
+            logging.info('NxN distances={0}'.format(len(df.index)**2))
             for i in range(len(df.index)):
                 d = []
                 for m in range(len(df.index)):
@@ -186,29 +213,35 @@ class Refine():
                     dist = np.linalg.norm(
                         df.iloc[i][['radeg', 'decdeg']].values -
                         df.iloc[m][['radeg', 'decdeg']].values
-                        )
+                    )
                     d.append(dist)
                     c += 1
                     if (c % 1E5 == 0):
                         logging.info('Calculation {0} of {1}'.format(
                             c, len(df.index)**2)
-                            )
+                        )
                 cumd.append(np.sum(d))
                 # Avoid appending the zero-distance
                 neig.append(sorted(d)[1])
+                # Value of 30 asec in deg
                 if sorted(d)[1] > 0.00833:
                     idx.append(i)
+            #
+            # Using the selected indices, make the sub-selection 
+            if (len(df.index) == len(idx)):
+                t_w = 'The separation criteria did not droped exposures'
+                logging.warning(t_w)
+            else:
+                df = df.iloc[idx]
             cumd = np.array(cumd)
             neig = np.array(neig)
             # Save files in case of crash
             pickle.dump(cumd, open('rm_cumd.pickle', 'w+'))
             pickle.dump(neig, open('rm_neig.pickle', 'w+'))
-            #the above selection don't filter, maybe because of the observig
-            #criteria in DES. All obey the condition
             #
             logging.info('Cutting down to 50 g-band exposures')
             #third selection: select 50 entries from a random sample, flat prob.
-            per_nite = np.ceil(50 / df['nite'].unique().size).astype(int)
+            per_nite = np.ceil(G / df['nite'].unique().size).astype(int)
             np.random.seed(seed=0)
             expnum = []
             for n in df['nite'].unique():
@@ -220,9 +253,9 @@ class Refine():
             # Double safety
             expnum = list(set(expnum))
             pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
-            if (len(expnum) < 50):
+            if (len(expnum) < G):
                 logging.warning('Less than 50 selected exposures. Adding more')
-            while (len(expnum) < 50):
+            while (len(expnum) < G):
                 rdm = np.random.choice(df['expnum'].values, size=1)
                 if rdm[0] not in expnum:
                     expnum += list(rdm)
@@ -280,7 +313,7 @@ class Refine():
                         orientation='portrait', papertype=None, format='pdf',
                         transparent=False, bbox_inches=None, pad_inches=0.1,
                         frameon=None)
-            # plt.show()
+            plt.show()
         #
         if True:
             plt.hist(cumd, 40, facecolor='darkturquoise',
@@ -297,7 +330,7 @@ class Refine():
                         orientation='portrait', papertype=None, format='pdf',
                         transparent=False, bbox_inches=None, pad_inches=0.1,
                         frameon=None)
-            # plt.show()
+            plt.show()
         #
         if True:
             plt.hist(neig, 40, facecolor='gold',
@@ -314,7 +347,7 @@ class Refine():
                         orientation='portrait', papertype=None, format='pdf',
                         transparent=False, bbox_inches=None, pad_inches=0.1,
                         frameon=None)
-            #plt.show()
+            plt.show()
         #
         if True:
             plt.hist(table['skybrightness'], 20, facecolor='yellow',
@@ -331,26 +364,53 @@ class Refine():
                         orientation='portrait', papertype=None, format='pdf',
                         transparent=False, bbox_inches=None, pad_inches=0.1,
                         frameon=None)
-            #plt.show()
+            plt.show()
 
 
 if __name__ == '__main__':
-    logging.warning('Avoid running in local laptop if not parallel. Use descmp4 or similar')
-    #----------
-    label = 'y5'
-    niterange = [20170815, 20180222]
-    #label = 'y4e2'
-    #niterange = [20170103, 20170218]
-    #----------
-    if not False:
-        gsel_ini = Toolbox.gband_select(niterange)
+    t_w = 'Avoid running locally if not parallel. Use descmp4 or similar'
+    logging.warning(t_w)
+    t_w = 'Plotting methods needs to be fixed'
+    logging.warning(t_w)
+    #
+    txt_ini = 'Script to select preBPM g-band wide field exposures'
+    arg = argparse.ArgumentParser(description=txt_ini)
+    #
+    h1 = 'Label to be used for outputs naming'
+    arg.add_argument('--lab', help=h1)
+    h2 = 'Range of nights to be used. Format: space separated yyyymmdd initial'
+    h2 += ' and final'
+    arg.add_argument('--nites', help=h2, nargs=2, type=int)
+    h3 = 'Flag to recalculate the g-band selection. Default is not to do it'
+    arg.add_argument('--flag1', help=h3, action='store_true')
+    h4 = 'List of exposures to be excluded from the search'
+    arg.add_argument('--exclude', help=h4)
+    #
+    arg = arg.parse_args()
+    #
+    # Selection of g-band exposures, all obeying the minimal condition 
+    if arg.flag1:
+        # Make the selection and save it
+        gsel_ini = Toolbox.gband_select(arg.nites)
         pickle.dump(gsel_ini, open('rm.pickle', 'w+'))
     else:
+        # Load the selection, from existing file
         pname = 'rm.pickle'
         logging.info('Loading pickled: {0}'.format(pname))
         gsel_ini = pickle.load(open(pname, 'r+'))
     #
-    expnum, cumdist, neig = Refine.reduce_sample(gsel_ini, label)
+    if (arg.exclude is not None):
+        excl = np.loadtxt(arg.exclude, dtype=int)
+    
+    exit()
+    # From the whole sample, get 50 exposures 
+    expnum, cumdist, neig = Refine.reduce_sample(gsel_ini, arg.lab, 
+                                                 exclude=excl,)
     #
-    logging.warning('Plottong methods NEED to be fixed')
-    Refine.some_stat(gsel_ini, '20170815t0222', expnum, cumdist, neig)
+    if False:
+        Refine.some_stat(gsel_ini, 'bpmSel', expnum, cumdist, neig)
+    
+    # -------------------------------------------------------------------------
+    # Visually check all the N10 (CCD 41) images are good, with no dead amp 
+    #
+    

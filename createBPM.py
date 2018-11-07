@@ -253,7 +253,7 @@ if __name__=='__main__':
     desc = 'Script to collect lists and iteratively call RGruendl \'mkbpm\''
     desc += ' for BPM creation, CCD by CCD. This uses PRECAL and PREBPM'
     desc += ' products as ingredients. Note BPMs are constructed based on'
-    desc += ' g-band'
+    desc += ' g-band. Note # is used as comment character in both input tables'
     abc = argparse.ArgumentParser(description=desc)
     #
     t0 = 'Object table harboring \'red_pixcor\' information, from PREBPM.'
@@ -266,7 +266,7 @@ if __name__=='__main__':
     t2 = 'Label to be used for generated BPM'
     abc.add_argument('--label', help=t2, metavar='')
     t3 = 'Space separated list of CCD numbers to be used. Default:'
-    t3 += ' {0}'.format(ccd_list)
+    t3 += ' {0}'.format(' '.join(map(str, ccd_list)))
     abc.add_argument('--ccd', help=t3, nargs='+', default=ccd_list)
     t4 = 'Directory for badpixel lists definitions. Default: '
     t4 += ' {0}'.format(badpix_dir)
