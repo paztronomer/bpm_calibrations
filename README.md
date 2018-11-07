@@ -6,7 +6,12 @@ Auxiliary scripts for DES BPM generation, as part of the yearly calibrations
 `python preBPM_select.py --lab y6 --nites 20180912 20181106 --flag1 --exclude y6_exclude_expnum.csv`
 
 1. Visually inspect the selected exposures
-``
+
+If the table of paths needs to be generated, use:
+`python plot_exposures_preBPM.py --explist y6_prebpm_gBAND.csv ...`
+
+If not, then use:
+`python plot_exposures_preBPM.py --tab g_selection.csv --op ccd --ccd 41`
 
 1. Tag Supercal, Precal, preBPM
 
