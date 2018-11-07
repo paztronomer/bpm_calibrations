@@ -32,8 +32,7 @@ select im.expnum, im.ccdnum, im.band,
     and im.filename=fai.filename
     and fai.archive_name=oa.name
     order by im.expnum, im.filename;
-```
-or
+``` or
 ```sql
 select {...}; > y5a1_object.tab
 ```
@@ -45,12 +44,15 @@ select att.archive_path, att.reqnum, att.unitname, att.attnum
   where tag.tag='Y5A1 PRECAL'
     and tag.pfw_attempt_id=att.id
     order by att.unitname, att.archive_path;
-```
-or
+``` or
 ```sql
 select {...}; > y5a1_precal.tab
 ```
 1. To call the creation of BPMs
 ```bash
 python createBPM.py y5a1_object.tab y5a1_precal.tab --label Y5A1
+```
+1. After created, rename the BPMs (using a newly created reqnum), and compare against some previous season
+```bash
+python compare_bpm.py --iroot bpm_a/D_n20170915t0930_c --jroot bpm_b/D_20160101t0115_c --Isuffix _r9999p01_bpm --Jsuffix _r8888p01_bpm  --type bitwise
 ```
