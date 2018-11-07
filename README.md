@@ -3,7 +3,10 @@ Auxiliary scripts for DES BPM generation, as part of the yearly calibrations
 
 ## Instructions to create BPM
 1. Run the selection of 50 g-band pre BPM by running a call similar to this
-`python preBPM_select.py --lab y6 --nites 20180912 20181106 --flag1`
+`python preBPM_select.py --lab y6 --nites 20180912 20181106 --flag1 --exclude y6_exclude_expnum.csv`
+
+1. Visually inspect the selected exposures
+``
 
 1. Tag Supercal, Precal, preBPM
 

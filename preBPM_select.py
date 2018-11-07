@@ -100,7 +100,7 @@ class Toolbox():
 
 class Refine():
     @classmethod
-    def reduce_sample(cls, data, label, exclude=None):
+    def reduce_sample(cls, data, label, exclude=None, G=80):
         '''Low skybrightness, separation of at least 30 arcsec (0.0083 deg)
         Inputs:
         - arr: structured array coming from DB query
@@ -112,7 +112,6 @@ class Refine():
             # Remove excluded
             if (exclude is not None):
                 for x in exclude:
-                    print(x)
                     arr = arr[np.where(arr['expnum'] != x)]
             # First selection: skybrightness below median of distribution
             arr = arr[arr['skybrightness'] <= np.median(arr['skybrightness'])]
@@ -160,7 +159,6 @@ class Refine():
             logging.info('Cutting down to 50 g-band exposures')
             # Third selection: select 50 entries from a random sample, 
             # flat probability distribution to select the exposures
-            G = 50.
             per_nite = np.ceil(G / np.unique(arr['nite']).shape[0]).astype(int)
             np.random.seed(seed=0)
             expnum = []
@@ -243,7 +241,7 @@ class Refine():
             #
             logging.info('Cutting down to 50 g-band exposures')
             #third selection: select 50 entries from a random sample, flat prob.
-            per_nite = np.ceil(50 / df['nite'].unique().size).astype(int)
+            per_nite = np.ceil(G / df['nite'].unique().size).astype(int)
             np.random.seed(seed=0)
             expnum = []
             for n in df['nite'].unique():
@@ -255,9 +253,9 @@ class Refine():
             # Double safety
             expnum = list(set(expnum))
             pickle.dump(expnum, open('rm_expnum.pickle', 'w+'))
-            if (len(expnum) < 50):
+            if (len(expnum) < G):
                 logging.warning('Less than 50 selected exposures. Adding more')
-            while (len(expnum) < 50):
+            while (len(expnum) < G):
                 rdm = np.random.choice(df['expnum'].values, size=1)
                 if rdm[0] not in expnum:
                     expnum += list(rdm)
@@ -403,6 +401,8 @@ if __name__ == '__main__':
     #
     if (arg.exclude is not None):
         excl = np.loadtxt(arg.exclude, dtype=int)
+    
+    exit()
     # From the whole sample, get 50 exposures 
     expnum, cumdist, neig = Refine.reduce_sample(gsel_ini, arg.lab, 
                                                  exclude=excl,)
